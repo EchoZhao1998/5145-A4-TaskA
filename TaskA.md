@@ -12,7 +12,7 @@
 
 ### Code
 
-```
+```bash
 # tep 1: extract sold_time column, skip header, drop Windows CRs,
 # and keep only values that look like a date+time
 
@@ -80,7 +80,7 @@ echo "Latest:   $(tail -n 1 q1_sorted.txt | cut -f2)"
 
 While I rerun comment below, it turned an error `cut: stdin: Illegal byte sequence`. During figuing out what it is. I noticed there are an OS mismatch error.
 
-```
+```bash 
 tail -n +2 TaskA_property_victoria.csv \
   | cut -d, -f4 \
   | tr -d '\r' \
@@ -91,8 +91,9 @@ tail -n +2 TaskA_property_victoria.csv \
 Hence, here is another version for anwers.
 
 #### Code 2
-```
-cd ~/Documents/5145/Assignment4
+
+```bash
+cd ~/Documents/5145/Assignment4/TaskA_shell
 
 # Step 0: switch the whole session to byte-mode (fixes the Illegal byte sequence)
 export LC_ALL=C
@@ -127,6 +128,7 @@ The `sold_time` range of the records is **1 January 2020 at 00:23** to
 data actually starts on 1 January 2020.
 
 
+---
 
 
 ## Q2 - Preprocess the ID(f1) and sold_time(f4) column.
@@ -138,7 +140,8 @@ data actually starts on 1 January 2020.
 regex `^[0-9]{6}$` would be valid ID
 
 #### Code
- ```
+
+ ```bash
  # S1: extract ID column, skip header
 tail -n +2 TaskA_property_victoria.csv | cut -d, -f1 > q2a_ids.txt
 
@@ -149,14 +152,18 @@ tail -n +2 TaskA_property_victoria.csv | cut -d, -f1 > q2a_ids.txt
  ```
 
 #### Answer
+
 **5 rows** have an `ID` that is not a 6-digit number: 3 rows whose IDs are short numbers(`122`, `15049`, `17176`), and 2 rows where the
 ID is the literal string `NA`.
 
+
 #### Screenshot
+
 ![TaQ2a](TaQ2a.png)
 
 Due to mismatch finded on Question one, re-run question 2 would get different anwer as well.
-```
+
+```bash
 # re-run Q2a
 
 tail -n +2 TaskA_property_victoria.csv | cut -d, -f1 > q2a_ids.txt
@@ -165,6 +172,7 @@ grep -vcE '^[0-9]{6}$' q2a_ids.txt
 
 grep -vE  '^[0-9]{6}$' q2a_ids.txt | sort | uniq -c
 ```
+
 #### Answer 2
 
 **9 rows** have an `ID` that is not a 6-digit number: 5 rows where the
@@ -189,7 +197,8 @@ Two transformations:
 2. In each kept row, remove the ` HH:MM` substring from column 4.
 
 #### Code
-```
+
+``` bash
 # Step 1: extrack a valid ID. Keep header (NR==1) plus rows with 6-digit long form.
 awk -F, 'NR==1 || $1 ~ /^[0-9]{6}$/' TaskA_property_victoria.csv > q2b_valid_ids.csv
 
@@ -197,7 +206,7 @@ wc -l q2b_valid_ids.csv  # check
 
 # output: 1 header + 127706 data rows = 127707
 
-wk -F, 'BEGIN { OFS = "," } NR == 1 { print; next } { sub(/ [0-9]+:[0-9]+/, "", $4); print }' q2b_valid_ids.csv > filtered_property.csv
+awk -F, 'BEGIN { OFS = "," } NR == 1 { print; next } { sub(/ [0-9]+:[0-9]+/, "", $4); print }' q2b_valid_ids.csv > filtered_property.csv
 
 wc -l  # check
 # output: 1 header + 127706 data rows = 127707. No miss.
@@ -206,5 +215,44 @@ wc -l  # check
 original 127716 - 9 bad rows = 127707 lines (header + 127706 data rows)
 wc -l TaskA_property_victoria.csv filtered_property.csv
 ```
-![q2b](q2b_head5.png)
+
+![q2b](q2b_verify_drop.png)
+
+#### Explanation
+
+- `awk -F, 'NR==1 || $1 ~ /^[0-9]{6}$/'` is the entire
+pattern. 
+`NR==1` is true on the header row. 
+`$1 ~ /^[0-9]{6}$/` is true on rows where the ID is exactly 6 digits. 
+`||` means "or" 
+
+- `sub(/ [0-9]+:[0-9]+/, "", $4)` finds the first occurrence of " H:MM" or " HH:MM" inside column 4 and replaces it with empty. 
+Because we assign to a field, awk rebuilds the line `OFS = ","`: Since the input and output separators are both comma, every other field comes back byte-identical, including rows `description` contained unescaped commas.
+
+- 127716 − 9 = 127707` — counts match Q2a.
+
+
+### Q2c — Display first 5 lines of ID and sold_time
+
+#### Code
+
+```bash
+cut -d, -f1,4 filtered_property.csv | head -n 6
+```
+![q2c](q2c_Head5.png)
+
+#### Explanation
+
+- `cut -d, -f1,4` picks columns 1 and 4 (`ID` and `sold_time`); they're
+  safe with `cut` because no commas appear inside the first four columns.
+
+- `head -n 6` 1 header + the first 5 data rows
+
+
+---
+
+
+## Q3 — First and last mention of "Mount Dandenong" in `address`
+
+
 

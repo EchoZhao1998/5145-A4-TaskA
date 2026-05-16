@@ -34,7 +34,7 @@ Open Terminal once and `cd` into the assignment folder. Every command below
 assumes you are in this folder, so you don't need to repeat the `cd`.
 
 ```bash
-cd ~/Documents/5145/Assignment4
+cd ~/Documents/5145/Assignment4/TaskA_shell
 ls -la TaskA_property_victoria.csv     # quick sanity check the file is here
 ```
 
