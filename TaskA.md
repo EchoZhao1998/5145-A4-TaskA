@@ -51,30 +51,34 @@ echo "Latest:   $(tail -n 1 q1_sorted.txt | cut -f2)"
          
 ```
 
-
-#### Answer: The `sold_time` range of the records is **1 January 2021 at 1:14** to **31 December 2021 at 22:58**.
-
 ### Screen shot
 ![Q1](TaQ1.png)
 
+
+#### Answer
+
+The `sold_time` range of the records is **1 January 2021 at 1:14** to **31 December 2021 at 22:58**.
+
+
 ### Explaination
-1. Isolate `sold_time` column.
-    - `cut -d, -f4`, cut the 4th column accordding to assignment desctiption.
-    - `tr -d 'r'`, removes 'return' character.
-    - `grep ...` filter rows with valid time format. 
-    - output it as a new text file: q1_sold_times.txt, which include 48480 data.
 
-2. Sort sold_times.
-    -  Standardise time format. current date would look like "M/D/YYYY H:S" or "MM/DD/YYYY HH:SS", Which determined by whether have "0" or not on date, and 24-hour time standard. It lead to disorder. Parse date form first, then sort.
+- Isolate `sold_time` column.
+  - `cut -d, -f4`, cut the 4th column accordding to assignment desctiption.
+  - `tr -d 'r'`, removes 'return' character.
+  - `grep ...` filter rows with valid time format. 
+  - output it as a new text file: q1_sold_times.txt, which include 48480 data.
+
+- Sort sold_times.
+  -  Standardise time format. current date would look like "M/D/YYYY H:S" or "MM/DD/YYYY HH:SS", Which determined by whether have "0" or not on date, and 24-hour time standard. It lead to disorder. Parse date form first, then sort.
     
-    - `awk -F'[ /:]'` splits a string like `"27/03/2021 22:17"` on any of space, slash, or colon — so we get the five fields `27`, `03`, `2021`, `22`, `17`. 
+  - `awk -F'[ /:]'` splits a string like `"27/03/2021 22:17"` on any of space, slash, or colon — so we get the five fields `27`, `03`, `2021`, `22`, `17`. 
 
-    - Then `printf"%04d-%02d-%02d %02d:%02d\t%s\n", $3(year), $2(month), $1(day), $4(hour), $5(minuete), $0(Placeholder: No second here)` rearranges them year-first and prints both the sortable form and the original. 
+  - Then `printf"%04d-%02d-%02d %02d:%02d\t%s\n", $3(year), $2(month), $1(day), $4(hour), $5(minuete), $0(Placeholder: No second here)` rearranges them year-first and prints both the sortable form and the original. 
     
-    - `sort` orders the lines alphabetically — but because our key iszero-padded and year-first, alphabetical order IS chronological order.
+  - `sort` orders the lines alphabetically — but because our key iszero-padded and year-first, alphabetical order IS chronological order.
 
-3. Strip off the first and last line to get answers
-    - `echo` can be regarded as `print` or `cat`(R)
+- Strip off the first and last line to get answers
+  - `echo` can be regarded as `print` or `cat`(R)
 
 ### Solucion 2
 
@@ -151,15 +155,16 @@ tail -n +2 TaskA_property_victoria.csv | cut -d, -f1 > q2a_ids.txt
 
  ```
 
+#### Screenshot
+
+![TaQ2a](TaQ2a.png)
+
+
 #### Answer
 
 **5 rows** have an `ID` that is not a 6-digit number: 3 rows whose IDs are short numbers(`122`, `15049`, `17176`), and 2 rows where the
 ID is the literal string `NA`.
 
-
-#### Screenshot
-
-![TaQ2a](TaQ2a.png)
 
 Due to mismatch finded on Question one, re-run question 2 would get different anwer as well.
 
@@ -216,6 +221,8 @@ original 127716 - 9 bad rows = 127707 lines (header + 127706 data rows)
 wc -l TaskA_property_victoria.csv filtered_property.csv
 ```
 
+#### Screenshot
+
 ![q2b](q2b_verify_drop.png)
 
 #### Explanation
@@ -239,6 +246,9 @@ Because we assign to a field, awk rebuilds the line `OFS = ","`: Since the input
 ```bash
 cut -d, -f1,4 filtered_property.csv | head -n 6
 ```
+
+#### Screenshot
+
 ![q2c](q2c_Head5.png)
 
 #### Explanation
@@ -254,5 +264,175 @@ cut -d, -f1,4 filtered_property.csv | head -n 6
 
 ## Q3 — First and last mention of "Mount Dandenong" in `address`
 
+### Approach
+
+Use `awk` to keep just the rows whose column 7(`address`) contains the literal `Mount Dandenong`. Then sort date.
+
+### Code 
+
+```bash
+# Step 1: keep only rows whose address (col 7) contains "Mount Dandenong"
+awk -F, '$7 ~ /Mount Dandenong/' filtered_property.csv > q3_matches.csv
+
+wc -l q3_matches.csv                # how many transactions matched?
+
+# Step 2: extract sold_time (col 4), drop any stray CRs
+cut -d, -f4 q3_matches.csv | tr -d '\r' > q3_dates.txt
+
+head -n 3 q3_dates.txt              # sanity: these should be DD/MM/YYYY
+
+# Step 3: convert "D/M/YYYY" to "YYYY-MM-DD<TAB>original", sort
+awk -F/ '{ printf "%04d-%02d-%02d\t%s\n", $3, $2, $1, $0 }' q3_dates.txt | sort  > q3_sorted.txt
+
+head -n 2 q3_sorted.txt
+
+# Step 4: read off first and last
+echo "First mention: $(head -n 1 q3_sorted.txt | cut -f2)"
+echo "Last  mention: $(tail -n 1 q3_sorted.txt | cut -f2)"
+```
+
+### Screenshot
+![q3](q3.png)
 
 
+### Answer
+
+- **First** (earliest) mention of "Mount Dandenong" in `address`: **1 January 2021**
+- **Last** (latest) mention: **29 December 2021**
+
+### Explanation
+
+- `awk -F, '$7 ~ /Mount Dandenong/'`  column 7 contains the `Mount Dandenong` . Awk regexes are case-sensitive, so this matches the spec's requirement.
+- `cut -d, -f4` extracts the `sold_time` column (now a date with no time, after Q2b). `tr -d '\r'` removes any `return`.
+- Sort year-month-day.
+- `echo` earliest an last line.
+
+
+---
+
+
+## Q4 — First/last sold_time: odd month, Townhouse, area > 300
+
+### Approach
+Filter `odd month, Townhouse, area > 300` 
+sanitary protensial `NA`
+Sort
+Print
+
+
+### Code
+
+```bash
+# Step 1: keep only Townhouse rows
+awk -F, '$12 == "Townhouse"' filtered_property.csv > q4_step1_townhouse.csv
+wc -l q4_step1_townhouse.csv
+
+# Step 2: among Townhouses, keep rows where area is a plain number AND > 300.
+# Patent1 of $11 matches a non-negative decimal (no NA, no "Xha", no "qq"); 
+# Pattern 2: numeric value of $11 (forced by + 0) is greater than 300
+awk -F, '$11 ~ /^[0-9]+(\.[0-9]+)?$/ && ($11 + 0) > 300' q4_step1_townhouse.csv > q4_step2_area.csv
+wc -l q4_step2_area.csv
+
+# Step 3: keep only rows whose sold_time month is odd (1, 3, 5, 7, 9, 11)
+# split($4, d, "/") gives d[1]=DD, d[2]=MM, d[3]=YYYY
+# (d[2] + 0) % 2 == 1 is true only for odd months
+awk -F, '{
+  split($4, d, "/")
+  if ((d[2] + 0) % 2 == 1) print
+}' q4_step2_area.csv > q4_step3_oddmonth.csv
+wc -l q4_step3_oddmonth.csv
+
+# Step 4: extract sold_time, build sortable key, sort
+cut -d, -f4 q4_step3_oddmonth.csv | tr -d '\r'  | awk -F/ '{ printf "%04d-%02d-%02d\t%s\n", $3, $2, $1, $0 }' | sort  > q4_sorted.txt
+
+# Step 5: report first and last
+echo "First sold_time: $(head -n 1 q4_sorted.txt | cut -f2)"
+echo "Last  sold_time: $(tail -n 1 q4_sorted.txt | cut -f2)"
+```
+
+### Screenshot
+![q4](q4.png)
+
+### Answer
+- **First** matching `sold_time`: **4 January 2021**
+- **Last** matching `sold_time`: **30 November 2021**
+
+### Explanation
+- Filter (1)Townhouse (2) area > 300 (3) odd month. this filter logic is most effient. Because...
+
+- Process `NA`, and other wrong valua filter by regex `^[0-9]+(\.[0-9]+)?$`.
+`$11 + 0` forces numeric context so the comparison is numerical (so `"800" > 300` is true and `"50" > 300` is false; without `+ 0`, awk would compare as strings and get `"50" > "300"` as true, which is wrong).
+
+- `split($4, d, "/")` splits `"4/01/2021"` into `d[1]=4`, `d[2]=01`, `d[3]=2021`. `(d[2] + 0) % 2 == 1` find odd month. `+ 0` force ensure data format is number. i.e. `"01"` to be treated as the number 1, not as a string.
+
+
+---
+
+## Q5 — How many unique property types?
+
+### Approach
+The literal answer is the number of distinct values in `property_type`,
+but inspection shows the column is **highly contaminated** with `area`
+numbers, an address fragment, and an `NA`. So we report the raw count
+*and* a cleaned count, with the wrangling spelled out.
+
+### Code
+
+```bash
+# Step 1: extract property_type column (col 12), skip header
+tail -n +2 filtered_property.csv | cut -d, -f12 > q5_types.txt
+wc -l q5_types.txt
+
+# Step 2: raw distinct count
+sort -u q5_types.txt | wc -l
+
+# Step 3: see the counts of various type — common types first, then the tail
+sort q5_types.txt | uniq -c | sort -rn > q5_unique_v1.txt
+head -n 15 q5_unique_v1.txt  # top 15 most common
+tail -n 15 q5_unique_v1.txt  # bottom 15. You can see them is meanless. So filter out them next
+
+# Step 4: filter out garbage. Each grep -vE drops one category:
+#   - "^NA$" 
+#   - "^[0-9]+(\.[0-9]+)?(ha)?$"  — pure numbers, optionally Xha
+#   - "^[0-9]+ .* VIC "  — address-like (e.g. "20 ... VIC 3984")
+sort -u q5_types.txt  | grep -vE '^NA$' | grep -vE '^[0-9]+(\.[0-9]+)?(ha)?$' | grep -vE '^[0-9]+ .* VIC '  > q5_unique_v2.txt
+
+wc -l q5_unique_v2.txt
+cat q5_unique_v2.txt
+
+# Step 5: case-collapsed count ("Vacant Land" and "Vacant land" merge)
+tr 'A-Z' 'a-z' < q5_unique_v2.txt | sort -u | wc -l
+```
+
+### Screenshot
+- Step 2![raw unique count](raw_unique.png)
+- Step 3 ![snity check](T15_B15.png)
+- Check result if they are purely unique or exist ![repeated value](q5_step5.png)
+- ![q5](q5.png)
+
+
+### Answer
+- **Raw distinct count**: 390 distinct strings in `property_type`. = Step 2
+- **unique_v1 property types after removing garbage data(step 3)**: **34**.
+- **After standarding case variants** (`Vacant Land` ↔ `Vacant land`): 
+  **33**.
+
+I report **34** (or **33**) as the meaningful answer, because the other 356 raw values are not property types — 354 are `area` numbers misplaced into the column, 1 is `NA`, and 1 is an address string.
+
+![Head 100 in dataset unique_v1.](head_100_in_unique_v1_dataset.png) 
+
+
+### Explanation
+
+- `-u` find the unique value, Extract to single test file. `wc -l` counts lines of the new file.
+- `sort | uniq -c | sort -rn` chain — sort alphabetically so duplicates are adjacent, 
+`uniq -c` counts each group, 
+`sort -rn` re-sorts by count (numeric, big to small) so the most common types come first. Check the head for valid property names and the tail for meanless data(garbage).
+- Filtering: Using `grep -vE` to remove the three patterns target the three garbage shapes spotted in step 3.
+- Collapse: `tr 'A-Z' 'a-z'` converts(transfer) uppercase to lowercase; then `sort -u | wc -l` recounts distinct values. `Vacant Land` (1 row) and `Vacant land` (10,236 rows) merge, dropping the count from 34 to 33.
+
+
+---
+
+
+## Q6 — Description column investigations
