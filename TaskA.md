@@ -234,7 +234,7 @@ pattern.
 - `sub(/ [0-9]+:[0-9]+/, "", $4)` finds the first occurrence of " H:MM" or " HH:MM" inside column 4 and replaces it with empty. 
 Because we assign to a field, awk rebuilds the line `OFS = ","`: Since the input and output separators are both comma, every other field comes back byte-identical, including rows `description` contained unescaped commas.
 
-- 127716 − 9 = 127707` — counts match Q2a.
+- 127716 − 9 = 127707 — counts match Q2a.
 
 
 ### Q2c — Display first 5 lines of ID and sold_time
@@ -294,6 +294,7 @@ head -n 2 q3_sorted.txt
 # Step 4: read off first and last
 echo "First mention: $(head -n 1 q3_sorted.txt | cut -f2)"
 echo "Last  mention: $(tail -n 1 q3_sorted.txt | cut -f2)"
+
 ```
 
 ### Screenshot
@@ -319,15 +320,13 @@ echo "Last  mention: $(tail -n 1 q3_sorted.txt | cut -f2)"
 ## Q4 — First/last sold_time: odd month, Townhouse, area > 300
 
 ### Approach
-Filter `odd month, Townhouse, area > 300` 
-sanitary protensial `NA`
-Sort
-Print
+Filter `odd month, Townhouse, area > 300`, remove `NA`. Then Sort and Print.
 
 
 ### Code
 
 ```bash
+
 # Step 1: keep only Townhouse rows
 awk -F, '$12 == "Townhouse"' filtered_property.csv > q4_step1_townhouse.csv
 wc -l q4_step1_townhouse.csv
@@ -353,6 +352,7 @@ cut -d, -f4 q4_step3_oddmonth.csv | tr -d '\r'  | awk -F/ '{ printf "%04d-%02d-%
 # Step 5: report first and last
 echo "First sold_time: $(head -n 1 q4_sorted.txt | cut -f2)"
 echo "Last  sold_time: $(tail -n 1 q4_sorted.txt | cut -f2)"
+
 ```
 
 ### Screenshot
@@ -363,7 +363,7 @@ echo "Last  sold_time: $(tail -n 1 q4_sorted.txt | cut -f2)"
 - **Last** matching `sold_time`: **30 November 2021**
 
 ### Explanation
-- Filter (1)Townhouse (2) area > 300 (3) odd month. this filter logic is most effient. Because...
+- Filter (1) Townhouse (2) area > 300 (3) odd month. 
 
 - Process `NA`, and other wrong valua filter by regex `^[0-9]+(\.[0-9]+)?$`.
 `$11 + 0` forces numeric context so the comparison is numerical (so `"800" > 300` is true and `"50" > 300` is false; without `+ 0`, awk would compare as strings and get `"50" > "300"` as true, which is wrong).
@@ -376,6 +376,7 @@ echo "Last  sold_time: $(tail -n 1 q4_sorted.txt | cut -f2)"
 ## Q5 — How many unique property types?
 
 ### Approach
+
 The literal answer is the number of distinct values in `property_type`,
 but inspection shows the column is **highly contaminated** with `area`
 numbers, an address fragment, and an `NA`. So we report the raw count
@@ -407,10 +408,11 @@ cat q5_unique_v2.txt
 
 # Step 5: case-collapsed count ("Vacant Land" and "Vacant land" merge)
 tr 'A-Z' 'a-z' < q5_unique_v2.txt | sort -u | wc -l
+
 ```
 
 ### Screenshot
-- Step 2![raw unique count](raw_unique.png)
+- Step 2 ![raw unique count](raw_unique.png)
 - Step 3 ![snity check](T15_B15.png)
 - Check result if they are purely unique or exist ![repeated value](q5_step5.png)
 - ![q5](q5.png)
@@ -447,6 +449,7 @@ I report **34** (or **33**) as the meaningful answer, because the other 356 raw 
 So extract the 14th - `description` - column first
 
 ```bash
+
 # Build a description-only file used by Q6a and Q6b, and transfer clean to lowercase format(It mentioned ignore cases in question)
 tail -n +2 filtered_property.csv | cut -d, -f14 | tr 'A-Z' 'a-z' > q6_descriptions.txt
 
@@ -459,6 +462,7 @@ wc -l q6_descriptions.txt  # 127706
 #### Code
 
 ```bash
+
 # Step 1: keep descriptions premium OR luxury
 grep -E '(premium|luxury)' q6_descriptions.txt > q6a_prem_lux.txt
 wc -l q6a_prem_lux.txt
@@ -466,6 +470,7 @@ wc -l q6a_prem_lux.txt
 # Step 2: among those, keep ones mentioning "outdoor entertaining area" 
 grep 'outdoor entertaining area' q6a_prem_lux.txt > q6a_prem_lux_out.txt
 wc -l q6a_prem_lux_out.txt 
+
 ```
 
 #### Screenshot
