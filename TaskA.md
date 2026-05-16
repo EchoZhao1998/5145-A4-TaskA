@@ -1,5 +1,13 @@
 # Task A
 
+> Crucial Notice before you read and mark my work
+>
+> Mac-specific session setup. 
+> macOS BSD tools (cut, grep, tr) error out on non-UTF-8 bytes in the property descriptions, producing cut: stdin: Illegal byte sequence and silently truncated output. 
+> The fix is export LC_ALL=C, which switches the shell to byte-mode. 
+> Note: this only lasts for the current terminal session — closing the terminal resets it. 
+> On returning to the assignment, I observed this on Q3 when re-opening Terminal a day later: my counts initially diverged from the previous day's results, and re-applying LC_ALL=C restored them.
+> Due to I finish Q1, Q2 in one day, and Q3 - Q6 in another, only applied LC_ALL=C twice in my code block you can see. 
 
 ## Q1 — sold_time range of the records
 
@@ -78,11 +86,7 @@ The `sold_time` range of the records is **1 January 2021 at 1:14** to **31 Decem
 While I rerun comment below, it turned an error `cut: stdin: Illegal byte sequence`. During figuing out what it is. I noticed there are an OS mismatch error.
 
 ```bash 
-tail -n +2 TaskA_property_victoria.csv \
-  | cut -d, -f4 \
-  | tr -d '\r' \
-  | grep -E '^[0-9]+/[0-9]+/[0-9]+ [0-9]+:[0-9]+$' \
-  > q1_sold_times.txt
+tail -n +2 TaskA_property_victoria.csv | cut -d, -f4 | tr -d '\r' | grep -E '^[0-9]+/[0-9]+/[0-9]+ [0-9]+:[0-9]+$' > q1_sold_times.txt
 ```
 
 Hence, here is another version for anwers.
@@ -93,13 +97,13 @@ Hence, here is another version for anwers.
 ```bash
 cd ~/Documents/5145/Assignment4/TaskA_shell
 
-# Step 0: switch the whole session to byte-mode (fixes the Illegal byte sequence)
+# Switch the whole session to byte-mode (fixes the Illegal byte sequence)
 export LC_ALL=C
 
-# Step 1: confirm — should now print "C"
+# Confirm — should now print "C"
 echo $LC_ALL
 
-# Step 2: throw away the stale caches and re-run Q1
+# remove the generated text files before
 rm -f q1_sold_times.txt q1_sorted.txt q2a_ids.txt
 
 tail -n +2 TaskA_property_victoria.csv | cut -d, -f4 | tr -d '\r' | grep -E '^[0-9]+/[0-9]+/[0-9]+ [0-9]+:[0-9]+$' > q1_sold_times.txt
@@ -114,8 +118,11 @@ echo "Latest:   $(tail -n 1 q1_sorted.txt | cut -f2)"
 
 ```
 
-#### Answer
+#### Screenshot
+![Answer bases on byte-mode](q1_s2.png)
 
+
+#### Answer
 The `sold_time` range of the records is **1 January 2020 at 00:23** to
 **31 December 2021 at 23:58**.
 
@@ -262,6 +269,13 @@ Use `awk` to keep just the rows whose column 7(`address`) contains the literal `
 ### Code 
 
 ```bash
+
+# Switch the whole session to byte-mode (fixes the Illegal byte sequence)
+export LC_ALL=C
+
+# Confirm — should now print "C"
+echo $LC_ALL
+
 # Step 1: keep only rows whose address (col 7) contains "Mount Dandenong"
 awk -F, '$7 ~ /Mount Dandenong/' filtered_property.csv > q3_matches.csv
 
@@ -471,3 +485,47 @@ an outdoor entertaining area.
 
 
 ### Q6b — Records mentioning a property size in their description
+
+#### Approach
+The spec gives two example forms: `Nm2` and `N sq metres`. I treat
+those as my **reference unit list**. To extend the list, I:
+1. consulted standard Australian property-area units (square metre, hectare, acre) from Google,
+2. inspected the description column to confirm these forms are present in the data, and to spot any forms I missed.
+
+#### Code
+
+```bash
+
+# Detect "digit + unit", "1249m2" likewise string
+grep -oE '[0-9]+[a-z]+[0-9]*' q6_descriptions.txt | sort | uniq -c | sort -rn | grep -iE '(m2|sqm|acres?|hectare|ha)' | head -30
+
+# Detect "digit + space + unit word", "758 sq metres" likewise string
+grep -oE '[0-9]+ [a-z]+( [a-z]+)?' q6_descriptions.txt | sort | uniq -c | sort -rn | grep -iE '(sq|acres?|hectares?|metres?)' | head -30
+
+# Now I know the forms used: m2, sqm, sq metres, square metres, acres, hectares, ha.
+# Build the regex from observation:
+grep -cE '[0-9]+m2|[0-9]+ ?sqm|[0-9]+ sq metres?|[0-9]+ square metres?|[0-9]+ acres?|[0-9]+ hectares?|[0-9]+ ?ha([ .,;]|$)' q6_descriptions.txt
+
+```
+
+#### Screenshot
+![q6b](q6b.png)
+
+#### Answer
+**42006 transaction records** mention property size information in
+their description.
+
+---
+
+## Cleanup (optional)
+
+To remove all intermediate files but keep `filtered_property.csv`, which generate in q2b(Drop bad-ID rows and strip the time from sold_time):
+
+```bash
+
+rm q*.txt q*_step*.csv q2b_valid_ids.csv q3_matches.csv
+
+# Snitary check 
+ls *.csv
+
+```
