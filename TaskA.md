@@ -3,35 +3,28 @@
 
 ## Q1 — sold_time range of the records
 
-1. What is the sold_time range of the records? Please include the full year, month, date, and time information when presenting the range.
+### Solution1
 
-### Approach
+#### Approach
 
-`sold_time` has the form `"D/M/YYYY H:MM"` but is **not** zero-padded (`8/11/2021 16:33` sits beside `27/03/2021 22:17`). Alphabetical `sort` would therefore be **wrong** for chronology, so we convert each value to a sortable form `YYYY-MM-DD HH:MM` before sorting.
+`sold_time` has the form `"D/M/YYYY H:MM"` but is **not** zero-padded format (e.g. `8/11/2021 16:33` sits beside `27/03/2021 22:17`), which leads to wrong `sort`. So convert each value to a sortable form `YYYY-MM-DD HH:MM` before sorting.
 
 
-### Code
+#### Code
 
 ```bash
-# tep 1: extract sold_time column, skip header, drop Windows CRs,
+# Step 1: extract sold_time column, skip header, drop returns,
 # and keep only values that look like a date+time
 
-tail -n +2 TaskA_property_victoria.csv \
-  | cut -d, -f4 \    # -d means delimeter
-  | tr -d '\r' \     # \r sanitary data, delete 'return'
-  | grep -E '^[0-9]+/[0-9]+/[0-9]+ [0-9]+:[0-9]+$' \  # Extended Regular Expressions, which allows you to use complex patterns.
-  > q1_sold_times.txt  # output as a new file
-
-  # Anwser is 48480 q1_sold_times.txt
+tail -n +2 TaskA_property_victoria.csv | cut -d, -f4 | tr -d '\r' | grep -E '^[0-9]+/[0-9]+/[0-9]+ [0-9]+:[0-9]+$' > q1_sold_times.txt  # output as a new file
+# Extended Regular Expressions, which allows you to use complex patterns.
+# Anwser is 48480 q1_sold_times.txt
  
 # Step 2: convert each "D/M/YYYY H:MM" into "YYYY-MM-DD HH:MM<TAB>original"
 # The -F'[ /:]' tells awk to split on space, slash, OR colon, so
 # "27/03/2021 22:17" becomes 5 fields: 27, 03, 2021, 22, 17.
  
-awk -F'[ /:]' '{ printf "%04d-%02d-%02d %02d:%02d\t%s\n", $3, $2, $1, $4, $5, $0 }' \ # -F flag defines the Field Separator (what breaks the line into pieces)
-q1_sold_times.txt \
-| sort \
-> q1_sorted.txt
+awk -F'[ /:]' '{ printf "%04d-%02d-%02d %02d:%02d\t%s\n", $3, $2, $1, $4, $5, $0 }' q1_sold_times.txt | sort > q1_sorted.txt
 
 # peek: top of sorted list
 head -n 2 q1_sorted.txt    
@@ -51,7 +44,7 @@ echo "Latest:   $(tail -n 1 q1_sorted.txt | cut -f2)"
          
 ```
 
-### Screen shot
+#### Screenshot
 ![Q1](TaQ1.png)
 
 
@@ -60,7 +53,7 @@ echo "Latest:   $(tail -n 1 q1_sorted.txt | cut -f2)"
 The `sold_time` range of the records is **1 January 2021 at 1:14** to **31 December 2021 at 22:58**.
 
 
-### Explaination
+#### Explaination
 
 - Isolate `sold_time` column.
   - `cut -d, -f4`, cut the 4th column accordding to assignment desctiption.
@@ -94,6 +87,7 @@ tail -n +2 TaskA_property_victoria.csv \
 
 Hence, here is another version for anwers.
 
+
 #### Code 2
 
 ```bash
@@ -108,23 +102,20 @@ echo $LC_ALL
 # Step 2: throw away the stale caches and re-run Q1
 rm -f q1_sold_times.txt q1_sorted.txt q2a_ids.txt
 
-tail -n +2 TaskA_property_victoria.csv \
-  | cut -d, -f4 \
-  | tr -d '\r' \
-  | grep -E '^[0-9]+/[0-9]+/[0-9]+ [0-9]+:[0-9]+$' \
-  > q1_sold_times.txt
+tail -n +2 TaskA_property_victoria.csv | cut -d, -f4 | tr -d '\r' | grep -E '^[0-9]+/[0-9]+/[0-9]+ [0-9]+:[0-9]+$' > q1_sold_times.txt
 
 wc -l q1_sold_times.txt        
 # turn to 127699, compare 48480 before. 
 
-awk -F'[ /:]' '{ printf "%04d-%02d-%02d %02d:%02d\t%s\n", $3, $2, $1, $4, $5, $0 }' \
-  q1_sold_times.txt | sort > q1_sorted.txt
+awk -F'[ /:]' '{ printf "%04d-%02d-%02d %02d:%02d\t%s\n", $3, $2, $1, $4, $5, $0 }' q1_sold_times.txt | sort > q1_sorted.txt
 
 echo "Earliest: $(head -n 1 q1_sorted.txt | cut -f2)"
 echo "Latest:   $(tail -n 1 q1_sorted.txt | cut -f2)"
 
 ```
-#### Answer 2
+
+#### Answer
+
 The `sold_time` range of the records is **1 January 2020 at 00:23** to
 **31 December 2021 at 23:58**.
 
@@ -146,10 +137,11 @@ regex `^[0-9]{6}$` would be valid ID
 #### Code
 
  ```bash
- # S1: extract ID column, skip header
+
+ # Step 1: extract ID column, skip header
 tail -n +2 TaskA_property_victoria.csv | cut -d, -f1 > q2a_ids.txt
 
- # S2: count rows whose ID isn't a 6-digit long nuber
+ # Step 2: count rows whose ID isn't a 6-digit long nuber
  # grep -v inverts the match; -c means 'count'
  grep -vcE '^[0-9]{6}$' q2a_ids.txt
 
@@ -165,7 +157,6 @@ tail -n +2 TaskA_property_victoria.csv | cut -d, -f1 > q2a_ids.txt
 **5 rows** have an `ID` that is not a 6-digit number: 3 rows whose IDs are short numbers(`122`, `15049`, `17176`), and 2 rows where the
 ID is the literal string `NA`.
 
-
 Due to mismatch finded on Question one, re-run question 2 would get different anwer as well.
 
 ```bash
@@ -178,7 +169,7 @@ grep -vcE '^[0-9]{6}$' q2a_ids.txt
 grep -vE  '^[0-9]{6}$' q2a_ids.txt | sort | uniq -c
 ```
 
-#### Answer 2
+#### Answer
 
 **9 rows** have an `ID` that is not a 6-digit number: 5 rows where the
 ID is the literal string `NA`, and 4 rows whose IDs are short numbers
@@ -190,7 +181,7 @@ ID is the literal string `NA`, and 4 rows whose IDs are short numbers
 
 - `^[0-9]{6}` means 6 digits. `$` limited the output **exactly** equal to 6.
 
--  `sort | uniq -c` arrange unique count value from small to large.
+-  `sort | uniq -c` arrange **unique count** value from small to large.
 
 
 ### Q2b — Drop bad-ID rows and strip the time from sold_time
@@ -436,3 +427,47 @@ I report **34** (or **33**) as the meaningful answer, because the other 356 raw 
 
 
 ## Q6 — Description column investigations
+
+### Ground setup: extract description text for searching
+
+So extract the 14th - `description` - column first
+
+```bash
+# Build a description-only file used by Q6a and Q6b, and transfer clean to lowercase format(It mentioned ignore cases in question)
+tail -n +2 filtered_property.csv | cut -d, -f14 | tr 'A-Z' 'a-z' > q6_descriptions.txt
+
+wc -l q6_descriptions.txt  # 127706
+
+```
+
+### Q6a — Premium/luxury properties with outdoor entertaining areas
+
+#### Code
+
+```bash
+# Step 1: keep descriptions premium OR luxury
+grep -E '(premium|luxury)' q6_descriptions.txt > q6a_prem_lux.txt
+wc -l q6a_prem_lux.txt
+
+# Step 2: among those, keep ones mentioning "outdoor entertaining area" 
+grep 'outdoor entertaining area' q6a_prem_lux.txt > q6a_prem_lux_out.txt
+wc -l q6a_prem_lux_out.txt 
+```
+
+#### Screenshot
+![q6a](q6a.png)
+
+
+#### Answer
+**224 transaction records** describe premium-or-luxury properties with
+an outdoor entertaining area.
+
+#### Explanation
+- Built `q6_descriptions.txt` once and reuse it in both Q6a and Q6b.
+  `tr [A-Z] [a-z]` lowercase to ignore cases,
+- **Step 1**: `grep -E '(premium|luxury)'` keeps lines containing
+  either keyword. `-E` enables extended regex so the `|` means "or"
+- **Step 2**: filter 'outdoor entertaining area'.
+
+
+### Q6b — Records mentioning a property size in their description
