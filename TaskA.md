@@ -11,63 +11,65 @@
 
 ## Q1 — sold_time range of the records
 
-### Solution1
-
-#### Approach
+### Approach
 
 `sold_time` has the form `"D/M/YYYY H:MM"` but is **not** zero-padded format (e.g. `8/11/2021 16:33` sits beside `27/03/2021 22:17`), which leads to wrong `sort`. So convert each value to a sortable form `YYYY-MM-DD HH:MM` before sorting.
 
-
-#### Code
+### Code
 
 ```bash
-# Step 1: extract sold_time column, skip header, drop returns,
-# and keep only values that look like a date+time
+cd ~/Documents/5145/Assignment4/TaskA_shell
 
-tail -n +2 TaskA_property_victoria.csv | cut -d, -f4 | tr -d '\r' | grep -E '^[0-9]+/[0-9]+/[0-9]+ [0-9]+:[0-9]+$' > q1_sold_times.txt  # output as a new file
-# Extended Regular Expressions, which allows you to use complex patterns.
-# Anwser is 48480 q1_sold_times.txt
- 
-# Step 2: convert each "D/M/YYYY H:MM" into "YYYY-MM-DD HH:MM<TAB>original"
-# The -F'[ /:]' tells awk to split on space, slash, OR colon, so
-# "27/03/2021 22:17" becomes 5 fields: 27, 03, 2021, 22, 17.
- 
+# Switch the whole session to byte-mode (fixes the Illegal byte sequence)
+export LC_ALL=C
+
+# Confirm — should now print "C"
+echo $LC_ALL
+
+
+tail -n +2 TaskA_property_victoria.csv | cut -d, -f4 | tr -d '\r' | grep -E '^[0-9]+/[0-9]+/[0-9]+ [0-9]+:[0-9]+$' > q1_sold_times.txt
+
+wc -l q1_sold_times.txt   # 12699
+
+# Investigate years present in the data
+awk -F'[ /:]' '{ print $3 }' q1_sold_times.txt | sort | uniq -c
+# Output: 1 record from 2020, 127698 from 2021
+# Because there is only one record on 2020 (account for 1/127699 = 0.0008%). And the assignment specification which states the dataset covers 2021.
+# Treat as a data-entry anomaly and exclude from the range. 
+
+awk -F'[ /:]' '$3 == "2020"' q1_sold_times.txt
+# Output: 01/01/2020 00:23 — note the suspiciously round time (00:23 on
+# 1 January). Likely a year typo (2020 instead of 2021).
+
+# Recompute the range after excluding the 2020 anomaly
+awk -F'[ /:]' '$3 != "2020"' q1_sold_times.txt | awk -F'[ /:]' '{ printf "%04d-%02d-%02d %02d:%02d\t%s\n", $3, $2, $1, $4, $5, $0 }' | sort > q1_sorted_clean.txt
+
+echo "Earliest (after excluding 2020 anomaly): $(head -n 1 q1_sorted_clean.txt | cut -f2)"
+echo "Latest   (after excluding 2020 anomaly): $(tail -n 1 q1_sorted_clean.txt | cut -f2)"
+
 awk -F'[ /:]' '{ printf "%04d-%02d-%02d %02d:%02d\t%s\n", $3, $2, $1, $4, $5, $0 }' q1_sold_times.txt | sort > q1_sorted.txt
 
-# peek: top of sorted list
-head -n 2 q1_sorted.txt    
-# output
-# 0420210101 01:00	1/01/2021 8:01
-# 0420210101 03:00	1/01/2021 22:03
-
-# peek: bottom of sorted list
-tail -n 2 q1_sorted.txt 
-# output:
-# 0420211231 58:00	31/12/2021 22:58
-# 0420211231 58:00	31/12/2021 7:58
-
-# Print the result
 echo "Earliest: $(head -n 1 q1_sorted.txt | cut -f2)"
 echo "Latest:   $(tail -n 1 q1_sorted.txt | cut -f2)"
-         
+
 ```
 
-#### Screenshot
-![Q1](TaQ1.png)
+### Screenshot
+![Raw Answer](q1_raw.png)
+![Cleaned Answer](q1_clean.png)
 
+### Answer
+Raw range: 01/01/2020 00:23 - 31/12/2021 23:58.
+Anomaly identified: the single record 01/01/2020 00:23 is the only 2020 entry in the dataset (1 row out of 127,699 valid dates = 0.0008%). The assignment specification states the dataset contains transactions from 2021. The round time (00:23 on 1 January) and singleton year strongly suggest a year-typo data-entry error.
+Range after excluding the anomaly: 1 January 2021 at 00:19 - 31 December 2021 at 23:58.
 
-#### Answer
-
-The `sold_time` range of the records is **1 January 2021 at 1:14** to **31 December 2021 at 22:58**.
-
-
-#### Explaination
+### Explaination
 
 - Isolate `sold_time` column.
   - `cut -d, -f4`, cut the 4th column accordding to assignment desctiption.
   - `tr -d 'r'`, removes 'return' character.
   - `grep ...` filter rows with valid time format. 
-  - output it as a new text file: q1_sold_times.txt, which include 48480 data.
+  - output it as a new text file: q1_sold_times.txt, which include 127699 data.
 
 - Sort sold_times.
   -  Standardise time format. current date would look like "M/D/YYYY H:S" or "MM/DD/YYYY HH:SS", Which determined by whether have "0" or not on date, and 24-hour time standard. It lead to disorder. Parse date form first, then sort.
@@ -80,55 +82,6 @@ The `sold_time` range of the records is **1 January 2021 at 1:14** to **31 Decem
 
 - Strip off the first and last line to get answers
   - `echo` can be regarded as `print` or `cat`(R)
-
-### Solucion 2
-
-While I rerun comment below, it turned an error `cut: stdin: Illegal byte sequence`. During figuing out what it is. I noticed there are an OS mismatch error.
-
-```bash 
-tail -n +2 TaskA_property_victoria.csv | cut -d, -f4 | tr -d '\r' | grep -E '^[0-9]+/[0-9]+/[0-9]+ [0-9]+:[0-9]+$' > q1_sold_times.txt
-```
-
-Hence, here is another version for anwers.
-
-
-#### Code 2
-
-```bash
-cd ~/Documents/5145/Assignment4/TaskA_shell
-
-# Switch the whole session to byte-mode (fixes the Illegal byte sequence)
-export LC_ALL=C
-
-# Confirm — should now print "C"
-echo $LC_ALL
-
-# remove the generated text files before
-rm -f q1_sold_times.txt q1_sorted.txt q2a_ids.txt
-
-tail -n +2 TaskA_property_victoria.csv | cut -d, -f4 | tr -d '\r' | grep -E '^[0-9]+/[0-9]+/[0-9]+ [0-9]+:[0-9]+$' > q1_sold_times.txt
-
-wc -l q1_sold_times.txt        
-# turn to 127699, compare 48480 before. 
-
-awk -F'[ /:]' '{ printf "%04d-%02d-%02d %02d:%02d\t%s\n", $3, $2, $1, $4, $5, $0 }' q1_sold_times.txt | sort > q1_sorted.txt
-
-echo "Earliest: $(head -n 1 q1_sorted.txt | cut -f2)"
-echo "Latest:   $(tail -n 1 q1_sorted.txt | cut -f2)"
-
-```
-
-#### Screenshot
-![Answer bases on byte-mode](q1_s2.png)
-
-
-#### Answer
-The `sold_time` range of the records is **1 January 2020 at 00:23** to
-**31 December 2021 at 23:58**.
-
-*Note:* the assignment brief says the file is 2021 transactions, but the
-data actually starts on 1 January 2020.
-
 
 ---
 
@@ -145,6 +98,9 @@ regex `^[0-9]{6}$` would be valid ID
 
  ```bash
 
+# Step 0: disable strict UTF-8 (BSD cut fails otherwise)
+export LC_ALL=C
+
  # Step 1: extract ID column, skip header
 tail -n +2 TaskA_property_victoria.csv | cut -d, -f1 > q2a_ids.txt
 
@@ -152,29 +108,12 @@ tail -n +2 TaskA_property_victoria.csv | cut -d, -f1 > q2a_ids.txt
  # grep -v inverts the match; -c means 'count'
  grep -vcE '^[0-9]{6}$' q2a_ids.txt
 
+ grep -vE  '^[0-9]{6}$' q2a_ids.txt | sort | uniq -c
+
  ```
 
 #### Screenshot
-
-![TaQ2a](TaQ2a.png)
-
-
-#### Answer
-
-**5 rows** have an `ID` that is not a 6-digit number: 3 rows whose IDs are short numbers(`122`, `15049`, `17176`), and 2 rows where the
-ID is the literal string `NA`.
-
-Due to mismatch finded on Question one, re-run question 2 would get different anwer as well.
-
-```bash
-# re-run Q2a
-
-tail -n +2 TaskA_property_victoria.csv | cut -d, -f1 > q2a_ids.txt
-grep -vcE '^[0-9]{6}$' q2a_ids.txt              
-# turn to 9, compared to 5 before.
-
-grep -vE  '^[0-9]{6}$' q2a_ids.txt | sort | uniq -c
-```
+![q2a](q2a.png)
 
 #### Answer
 
@@ -202,7 +141,11 @@ Two transformations:
 #### Code
 
 ``` bash
-# Step 1: extrack a valid ID. Keep header (NR==1) plus rows with 6-digit long form.
+
+# Step 0: disable strict UTF-8 (BSD cut fails otherwise)
+export LC_ALL=C 
+
+# Step 1: extrack a valid ID. Keep header (NR==1) and rows with 6-digit long form.
 awk -F, 'NR==1 || $1 ~ /^[0-9]{6}$/' TaskA_property_victoria.csv > q2b_valid_ids.csv
 
 wc -l q2b_valid_ids.csv  # check
@@ -211,11 +154,11 @@ wc -l q2b_valid_ids.csv  # check
 
 awk -F, 'BEGIN { OFS = "," } NR == 1 { print; next } { sub(/ [0-9]+:[0-9]+/, "", $4); print }' q2b_valid_ids.csv > filtered_property.csv
 
-wc -l  # check
+wc -l  filtered_property.csv   # check
 # output: 1 header + 127706 data rows = 127707. No miss.
 
 # Verify: 
-original 127716 - 9 bad rows = 127707 lines (header + 127706 data rows)
+# original 127716 - 9 bad rows = 127707 lines (header + 127706 data rows)
 wc -l TaskA_property_victoria.csv filtered_property.csv
 ```
 
@@ -225,14 +168,13 @@ wc -l TaskA_property_victoria.csv filtered_property.csv
 
 #### Explanation
 
-- `awk -F, 'NR==1 || $1 ~ /^[0-9]{6}$/'` is the entire
-pattern. 
-`NR==1` is true on the header row. 
-`$1 ~ /^[0-9]{6}$/` is true on rows where the ID is exactly 6 digits. 
-`||` means "or" 
+- `awk -F, 'NR==1 || $1 ~ /^[0-9]{6}$/'` is the entire pattern. 
+  - `NR==1` is true on the header row. 
+  - `$1 ~ /^[0-9]{6}$/` is true on rows where the ID is exactly 6 digits. 
+  - `||` means "or".
 
 - `sub(/ [0-9]+:[0-9]+/, "", $4)` finds the first occurrence of " H:MM" or " HH:MM" inside column 4 and replaces it with empty. 
-Because we assign to a field, awk rebuilds the line `OFS = ","`: Since the input and output separators are both comma, every other field comes back byte-identical, including rows `description` contained unescaped commas.
+Because we assign to a field,  `awk` rebuilds the line `OFS = ","`: Since the input and output separators are both comma, every other field comes back byte-identical, including rows `description` contained unescaped commas.
 
 - 127716 − 9 = 127707 — counts match Q2a.
 
@@ -242,6 +184,9 @@ Because we assign to a field, awk rebuilds the line `OFS = ","`: Since the input
 #### Code
 
 ```bash
+
+export LC_ALL=C
+
 cut -d, -f1,4 filtered_property.csv | head -n 6
 ```
 
@@ -264,27 +209,26 @@ cut -d, -f1,4 filtered_property.csv | head -n 6
 
 ### Approach
 
+> Importand note for marker: This question uses filtered_property.csv, the cleaned dataset produced in Q2b (bad-ID rows dropped, time stripped from sold_time). The filtering performed in Q2b is the prerequisite for all subsequent questions in Task A.
+
 Use `awk` to keep just the rows whose column 7(`address`) contains the literal `Mount Dandenong`. Then sort date.
 
 ### Code 
 
 ```bash
 
-# Switch the whole session to byte-mode (fixes the Illegal byte sequence)
+# Step 0: Switch the whole session to byte-mode (fixes the Illegal byte sequence)
 export LC_ALL=C
-
-# Confirm — should now print "C"
-echo $LC_ALL
 
 # Step 1: keep only rows whose address (col 7) contains "Mount Dandenong"
 awk -F, '$7 ~ /Mount Dandenong/' filtered_property.csv > q3_matches.csv
 
-wc -l q3_matches.csv                # how many transactions matched?
+wc -l q3_matches.csv                # how many transactions matched - Ans: 44
 
 # Step 2: extract sold_time (col 4), drop any stray CRs
 cut -d, -f4 q3_matches.csv | tr -d '\r' > q3_dates.txt
 
-head -n 3 q3_dates.txt              # sanity: these should be DD/MM/YYYY
+head -n 3 q3_dates.txt   # sanity check: these should be DD/MM/YYYY
 
 # Step 3: convert "D/M/YYYY" to "YYYY-MM-DD<TAB>original", sort
 awk -F/ '{ printf "%04d-%02d-%02d\t%s\n", $3, $2, $1, $0 }' q3_dates.txt | sort  > q3_sorted.txt
@@ -319,6 +263,8 @@ echo "Last  mention: $(tail -n 1 q3_sorted.txt | cut -f2)"
 
 ## Q4 — First/last sold_time: odd month, Townhouse, area > 300
 
+> Importand note for marker: This question uses filtered_property.csv, the cleaned dataset produced in Q2b (bad-ID rows dropped, time stripped from sold_time). The filtering performed in Q2b is the prerequisite for all subsequent questions in Task A.
+
 ### Approach
 Filter `odd month, Townhouse, area > 300`, remove `NA`. Then Sort and Print.
 
@@ -327,24 +273,24 @@ Filter `odd month, Townhouse, area > 300`, remove `NA`. Then Sort and Print.
 
 ```bash
 
+# Step 0: Switch the whole session to byte-mode (fixes the Illegal byte sequence)
+export LC_ALL=C
+
 # Step 1: keep only Townhouse rows
 awk -F, '$12 == "Townhouse"' filtered_property.csv > q4_step1_townhouse.csv
-wc -l q4_step1_townhouse.csv
+wc -l q4_step1_townhouse.csv  # 10471
 
 # Step 2: among Townhouses, keep rows where area is a plain number AND > 300.
 # Patent1 of $11 matches a non-negative decimal (no NA, no "Xha", no "qq"); 
 # Pattern 2: numeric value of $11 (forced by + 0) is greater than 300
 awk -F, '$11 ~ /^[0-9]+(\.[0-9]+)?$/ && ($11 + 0) > 300' q4_step1_townhouse.csv > q4_step2_area.csv
-wc -l q4_step2_area.csv
+wc -l q4_step2_area.csv  # 814 
 
 # Step 3: keep only rows whose sold_time month is odd (1, 3, 5, 7, 9, 11)
 # split($4, d, "/") gives d[1]=DD, d[2]=MM, d[3]=YYYY
 # (d[2] + 0) % 2 == 1 is true only for odd months
-awk -F, '{
-  split($4, d, "/")
-  if ((d[2] + 0) % 2 == 1) print
-}' q4_step2_area.csv > q4_step3_oddmonth.csv
-wc -l q4_step3_oddmonth.csv
+awk -F, '{split($4, d, "/"); if((d[2] + 0) % 2 == 1) print}' q4_step2_area.csv >q4_step3_oddmonth.csv
+wc -l q4_step3_oddmonth.csv   # 398
 
 # Step 4: extract sold_time, build sortable key, sort
 cut -d, -f4 q4_step3_oddmonth.csv | tr -d '\r'  | awk -F/ '{ printf "%04d-%02d-%02d\t%s\n", $3, $2, $1, $0 }' | sort  > q4_sorted.txt
@@ -373,38 +319,42 @@ echo "Last  sold_time: $(tail -n 1 q4_sorted.txt | cut -f2)"
 
 ---
 
+
 ## Q5 — How many unique property types?
+
+> Importand note for marker: This question uses filtered_property.csv, the cleaned dataset produced in Q2b (bad-ID rows dropped, time stripped from sold_time). The filtering performed in Q2b is the prerequisite for all subsequent questions in Task A.
 
 ### Approach
 
-The literal answer is the number of distinct values in `property_type`,
-but inspection shows the column is **highly contaminated** with `area`
-numbers, an address fragment, and an `NA`. So we report the raw count
-*and* a cleaned count, with the wrangling spelled out.
+The answer is the number of distinct values in `property_type`, but inspection shows the column is **highly contaminated** with `area` numbers, an address fragment, and an `NA`. So report the raw count first *and* a cleaned count, with the wrangling spelled out.
 
 ### Code
 
 ```bash
+
+# Step 0: Switch the whole session to byte-mode (fixes the Illegal byte sequence)
+export LC_ALL=C
+
 # Step 1: extract property_type column (col 12), skip header
 tail -n +2 filtered_property.csv | cut -d, -f12 > q5_types.txt
-wc -l q5_types.txt
+wc -l q5_types.txt   # 127706
 
 # Step 2: raw distinct count
-sort -u q5_types.txt | wc -l
+sort -u q5_types.txt | wc -l  # 390
 
 # Step 3: see the counts of various type — common types first, then the tail
 sort q5_types.txt | uniq -c | sort -rn > q5_unique_v1.txt
 head -n 15 q5_unique_v1.txt  # top 15 most common
-tail -n 15 q5_unique_v1.txt  # bottom 15. You can see them is meanless. So filter out them next
+tail -n 15 q5_unique_v1.txt  # bottom 15. You can see them is meanless. So filter out them next. Data wranling needed!
 
-# Step 4: filter out garbage. Each grep -vE drops one category:
+# Step 4: filter out garbage data(tail-like rows). Each grep -vE drops one category:
 #   - "^NA$" 
-#   - "^[0-9]+(\.[0-9]+)?(ha)?$"  — pure numbers, optionally Xha
+#   - "^[0-9]+(\.[0-9]+)?(ha)?$"  — pure numbers and 'Xha'
 #   - "^[0-9]+ .* VIC "  — address-like (e.g. "20 ... VIC 3984")
 sort -u q5_types.txt  | grep -vE '^NA$' | grep -vE '^[0-9]+(\.[0-9]+)?(ha)?$' | grep -vE '^[0-9]+ .* VIC '  > q5_unique_v2.txt
 
-wc -l q5_unique_v2.txt
-cat q5_unique_v2.txt
+wc -l q5_unique_v2.txt  # 34
+cat q5_unique_v2.txt 
 
 # Step 5: case-collapsed count ("Vacant Land" and "Vacant land" merge)
 tr 'A-Z' 'a-z' < q5_unique_v2.txt | sort -u | wc -l
@@ -412,8 +362,13 @@ tr 'A-Z' 'a-z' < q5_unique_v2.txt | sort -u | wc -l
 ```
 
 ### Screenshot
-- Step 2 ![raw unique count](raw_unique.png)
-- Step 3 ![snity check](T15_B15.png)
+- Step 2 ![raw_unique_count](raw_unique.png)
+- Gabage Data format
+  - Address
+  ![address_type](address_type.png)
+  - Number and NA type
+  ![Head 100 in dataset unique_v1.](head_100_in_unique_v1_dataset.png) 
+- Step 3 ![snity_check](T15_B15.png)
 - Check result if they are purely unique or exist ![repeated value](q5_step5.png)
 - ![q5](q5.png)
 
@@ -425,8 +380,6 @@ tr 'A-Z' 'a-z' < q5_unique_v2.txt | sort -u | wc -l
   **33**.
 
 I report **34** (or **33**) as the meaningful answer, because the other 356 raw values are not property types — 354 are `area` numbers misplaced into the column, 1 is `NA`, and 1 is an address string.
-
-![Head 100 in dataset unique_v1.](head_100_in_unique_v1_dataset.png) 
 
 
 ### Explanation
@@ -444,11 +397,16 @@ I report **34** (or **33**) as the meaningful answer, because the other 356 raw 
 
 ## Q6 — Description column investigations
 
+> Importand note for marker: This question uses filtered_property.csv, the cleaned dataset produced in Q2b (bad-ID rows dropped, time stripped from sold_time). The filtering performed in Q2b is the prerequisite for all subsequent questions in Task A.
+
 ### Ground setup: extract description text for searching
 
 So extract the 14th - `description` - column first
 
 ```bash
+
+# Step 0: Switch the whole session to byte-mode (fixes the Illegal byte sequence)
+export LC_ALL=C
 
 # Build a description-only file used by Q6a and Q6b, and transfer clean to lowercase format(It mentioned ignore cases in question)
 tail -n +2 filtered_property.csv | cut -d, -f14 | tr 'A-Z' 'a-z' > q6_descriptions.txt
@@ -517,18 +475,20 @@ grep -cE '[0-9]+m2|[0-9]+ ?sqm|[0-9]+ sq metres?|[0-9]+ square metres?|[0-9]+ ac
 ![q6b](q6b.png)
 
 #### Answer
-**42006 transaction records** mention property size information in
+**42066 transaction records** mention property size information in
 their description.
 
 ---
 
-## Cleanup (optional)
+## Cleanup 
+
+> if marker run code in this work, you can run the below code to remove intermiate files
 
 To remove all intermediate files but keep `filtered_property.csv`, which generate in q2b(Drop bad-ID rows and strip the time from sold_time):
 
 ```bash
 
-rm q*.txt q*_step*.csv q2b_valid_ids.csv q3_matches.csv
+rm q*.txt q*_step*.csv q2b_valid_ids.csv q3_matches.csv # here can replace with the file(s) of qustion you mark
 
 # Snitary check 
 ls *.csv
