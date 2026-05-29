@@ -185,11 +185,6 @@ Because we assign to a field,  `awk` rebuilds the line `OFS = ","`: Since the in
 #### Code
 
 ```bash
-
-cd ~/Documents/5145/Assignment4/TaskA_shell
-
-export LC_ALL=C
-
 cut -d, -f1,4 filtered_property.csv | head -n 6
 ```
 
@@ -386,7 +381,7 @@ tr 'A-Z' 'a-z' < q5_unique_v2.txt | sort -u | wc -l
 - **After standarding case variants** (`Vacant Land` ↔ `Vacant land`): 
   **33**.
 
-I report **34** (or **33**), in case for protential mark penalty, the assignment mentioned can "ignore case".
+In case for protential mark penalty, I report **34** (or **33**). However, the assignment mentioned can "ignore case".
 
 
 ### Explanation
