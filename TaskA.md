@@ -50,15 +50,9 @@ awk -F'[ /:]' '$3 != "2020"' q1_sold_times.txt | awk -F'[ /:]' '{ printf "%04d-%
 echo "Earliest (after excluding 2020 anomaly): $(head -n 1 q1_sorted_clean.txt | cut -f2)"
 echo "Latest   (after excluding 2020 anomaly): $(tail -n 1 q1_sorted_clean.txt | cut -f2)"
 
-awk -F'[ /:]' '{ printf "%04d-%02d-%02d %02d:%02d\t%s\n", $3, $2, $1, $4, $5, $0 }' q1_sold_times.txt | sort > q1_sorted.txt
-
-echo "Earliest: $(head -n 1 q1_sorted.txt | cut -f2)"
-echo "Latest:   $(tail -n 1 q1_sorted.txt | cut -f2)"
-
 ```
 
 ### Screenshot
-![Raw Answer](q1_raw.png)
 ![Cleaned Answer](q1_clean.png)
 
 ### Answer
@@ -100,6 +94,8 @@ regex `^[0-9]{6}$` would be valid ID
 #### Code
 
  ```bash
+
+cd ~/Documents/5145/Assignment4/TaskA_shell
 
 # Step 0: disable strict UTF-8 (BSD cut fails otherwise)
 export LC_ALL=C
@@ -145,6 +141,8 @@ Two transformations:
 
 ``` bash
 
+cd ~/Documents/5145/Assignment4/TaskA_shell
+
 # Step 0: disable strict UTF-8 (BSD cut fails otherwise)
 export LC_ALL=C 
 
@@ -188,6 +186,8 @@ Because we assign to a field,  `awk` rebuilds the line `OFS = ","`: Since the in
 
 ```bash
 
+cd ~/Documents/5145/Assignment4/TaskA_shell
+
 export LC_ALL=C
 
 cut -d, -f1,4 filtered_property.csv | head -n 6
@@ -219,6 +219,8 @@ Use `awk` to keep just the rows whose column 7(`address`) contains the literal `
 ### Code 
 
 ```bash
+
+cd ~/Documents/5145/Assignment4/TaskA_shell
 
 # Step 0: Switch the whole session to byte-mode (fixes the Illegal byte sequence)
 export LC_ALL=C
@@ -275,6 +277,8 @@ Filter `odd month, Townhouse, area > 300`, remove `NA`. Then Sort and Print.
 ### Code
 
 ```bash
+
+cd ~/Documents/5145/Assignment4/TaskA_shell
 
 # Step 0: Switch the whole session to byte-mode (fixes the Illegal byte sequence)
 export LC_ALL=C
@@ -334,6 +338,8 @@ The answer is the number of distinct values in `property_type`, but inspection s
 ### Code
 
 ```bash
+
+cd ~/Documents/5145/Assignment4/TaskA_shell
 
 # Step 0: Switch the whole session to byte-mode (fixes the Illegal byte sequence)
 export LC_ALL=C
@@ -405,6 +411,8 @@ I report **34** (or **33**), in case for protential mark penalty, the assignment
 So extract the 14th - `description` - column first
 
 ```bash
+
+cd ~/Documents/5145/Assignment4/TaskA_shell
 
 # Step 0: Switch the whole session to byte-mode (fixes the Illegal byte sequence)
 export LC_ALL=C
