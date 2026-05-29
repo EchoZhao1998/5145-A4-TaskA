@@ -4,10 +4,13 @@
 >
 > Mac-specific session setup. 
 > macOS BSD tools (cut, grep, tr) error out on non-UTF-8 bytes in the property descriptions, producing cut: stdin: Illegal byte sequence and silently truncated output. 
+>
 > The fix is export LC_ALL=C, which switches the shell to byte-mode. 
-> Note: this only lasts for the current terminal session — closing the terminal resets it. 
-> On returning to the assignment, I observed this on Q3 when re-opening Terminal a day later: my counts initially diverged from the previous day's results, and re-applying LC_ALL=C restored them.
-> Due to I finish Q1, Q2 in one day, and Q3 - Q6 in another, only applied LC_ALL=C twice in my code block you can see. 
+>
+> Note: this only lasts for the current terminal session — closing the terminal resets it. You'll see I add `export...` as step 0 at the beginning of each questions code block.
+
+
+---
 
 ## Q1 — sold_time range of the records
 
